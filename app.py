@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (QApplication, QComboBox, QInputDialog, QFrame,
 
 from ffmpegworker import FfmpegWorker
 from filedialogwidget import FileDialogWidget
+from utils import try_parse_int64
 
 class ClipsApp(QMainWindow):
     command = pyqtSignal(list)
@@ -21,6 +22,7 @@ class ClipsApp(QMainWindow):
         self.target = None
         self.starttime = None
         self.duration = None
+        self.num_clip = None
         self.jump = None
         self.target_dir = None
         self.video_length = None
@@ -56,8 +58,8 @@ class ClipsApp(QMainWindow):
         self.line_edit_starttime = QLineEdit()
         label_duration = QLabel("Duration: ")
         self.line_edit_duration = QLineEdit()
-        label_proportion = QLabel("Proportion: ")
-        self.line_edit_proportion = QLineEdit()
+        label_num_clip = QLabel("No. of clips: ")
+        self.line_edit_num_clip = QLineEdit()
         button_preview = QPushButton("Preview")
         button_preview.setFixedWidth(button_width)
         button_preview.clicked.connect(self.preview_clip_info)
@@ -67,8 +69,8 @@ class ClipsApp(QMainWindow):
         hbox_arguments.addWidget(self.line_edit_starttime)
         hbox_arguments.addWidget(label_duration)
         hbox_arguments.addWidget(self.line_edit_duration)
-        hbox_arguments.addWidget(label_proportion)
-        hbox_arguments.addWidget(self.line_edit_proportion)
+        hbox_arguments.addWidget(label_num_clip)
+        hbox_arguments.addWidget(self.line_edit_num_clip)
         hbox_arguments.addWidget(button_preview)
 
         self.combo_preset = QComboBox()
@@ -112,19 +114,15 @@ class ClipsApp(QMainWindow):
             return
         self.target = self.line_edit_filename.text()
         self.target_dir = os.path.dirname(self.target)
-        cmd_ffprobe = ["ffprobe", "-i", self.target]
+        cmd_ffprobe = ["ffprobe", "-v", "error", "-show_entries",
+                       "format=duration", "-of",
+                       "default=noprint_wrappers=1:nokey=1", self.target]
         process = subprocess.Popen(cmd_ffprobe, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT)
-
         stdout, __ = process.communicate()
         try:
             self.has_valid_video = True
-            matches = re.search(r"Duration:\s{1}(?P<hours>\d+?):(?P<minutes>\d+?):(?P<seconds>\d+\.\d+?),", str(stdout), re.DOTALL).groupdict()
-            t_hh_sec = float(matches["hours"]) * 3600.0
-            t_mm_sec = float(matches["minutes"]) * 60.0
-            t_ss_sec = round(float(matches["seconds"]))
-
-            self.video_length = t_hh_sec + t_mm_sec + t_ss_sec
+            self.video_length = round(float(stdout.decode("utf-8")))
         except AttributeError:
             self.has_valid_video = False
             self.label_info.setText("ERROR: Invalid video file")
@@ -132,14 +130,6 @@ class ClipsApp(QMainWindow):
     def preview_clip_info(self, quiet=False):
         if not self.has_valid_video:
             self.label_info.setText("ERROR: Invalid video file")
-            return
-        if try_parse_int64(self.line_edit_duration.text()) is None:
-            self.label_info.setText("ERROR: Invalid duration")
-            return
-        if (try_parse_int64(self.line_edit_proportion.text()) is None or
-                try_parse_int64(self.line_edit_proportion.text()) <= 0 or
-                try_parse_int64(self.line_edit_proportion.text()) > 100):
-            self.label_info.setText("ERROR: Invalid proportion")
             return
         if len(self.line_edit_starttime.text().split(":")) != 3:
             self.label_info.setText("ERROR: Invalid start time")
@@ -150,45 +140,50 @@ class ClipsApp(QMainWindow):
         t_mm_sec = float(t_start[1]) * 60.0
         t_ss_sec = round(float(t_start[2]))
 
-        total_sec = t_hh_sec + t_mm_sec + t_ss_sec
+        t_start_sec = t_hh_sec + t_mm_sec + t_ss_sec
         if (t_start[0] < 0 or t_start[1] < 0 or t_start[2] < 0 or
                 t_start[1] >= 60 or t_start[2] >= 60):
             self.label_info.setText("ERROR: Invalid start time")
             return
-        if total_sec > self.video_length:
+        if t_start_sec > self.video_length:
             self.label_info.setText("ERROR: Start time exceeds video length")
+            return
+
+        working_duration = self.video_length - t_start_sec
+
+        if (try_parse_int64(self.line_edit_duration.text()) is None or
+                try_parse_int64(self.line_edit_duration.text()) >
+                working_duration):
+            self.label_info.setText("ERROR: Invalid duration")
+            return
+        if (try_parse_int64(self.line_edit_num_clip.text()) is None or
+                try_parse_int64(self.line_edit_num_clip.text()) <= 0 or
+                try_parse_int64(self.line_edit_num_clip.text()) *
+                try_parse_int64(self.line_edit_duration.text()) >
+                working_duration):
+            self.label_info.setText("ERROR: Invalid no. of clips")
             return
         self.starttime = self.line_edit_starttime.text()
         self.duration = self.line_edit_duration.text()
-        proportion = self.line_edit_proportion.text()
+        self.num_clip = self.line_edit_num_clip.text()
 
-        working_duration = self.video_length - total_sec
-        num_clips = int(math.ceil(100.0 * float(working_duration) /
-                                  float(self.video_length) /
-                                  float(try_parse_int64(proportion))))
-        trailer_duration = float(num_clips) * try_parse_int64(self.duration)
-        self.jump = int(float(try_parse_int64(proportion)) / 100.0 *
-                        float(self.video_length))
+        trailer_duration = (try_parse_int64(self.num_clip) *
+                            try_parse_int64(self.duration))
+        self.jump = working_duration // try_parse_int64(self.num_clip)
 
         if not quiet:
             self.label_info.setText(
                 "INFO: Creating a {}s trailer ".format(int(trailer_duration)) +
-                "with {} clips, ".format(num_clips) +
+                "with {} clips, ".format(self.num_clip) +
                 "each {}s long taken every {}s".format(self.duration,
                                                        self.jump))
 
     def create(self):
         self.preview_clip_info()
-        outfilename = os.path.splitext(self.target)[0] + ".webm"
-        select_arg = r"lt(mod(t\,{})\,{})".format(self.jump, self.duration)
-        cmd = ["ffmpeg", "-ss", self.starttime, "-i", self.target,
-               "-vf", "select='{}',setpts=N/FRAME_RATE/TB".format(select_arg),
-               "-an", "-c:v", "libvpx-vp9", "-b:v", "3M", "-y", outfilename]
+        args = [self.target, self.starttime, self.duration, self.num_clip,
+                self.jump]
         self.label_info.setText("INFO: Running")
-
-        with open(os.path.join(self.cwd, "debug.txt"), "w") as debug_file:
-            debug_file.write(" ".join(cmd))
-        self.command.emit(cmd)
+        self.command.emit(args)
 
     def update_combo_box(self):
         self.combo_preset.clear()
@@ -196,10 +191,11 @@ class ClipsApp(QMainWindow):
         for section in self.config:
             if section != "DEFAULT":
                 self.combo_preset.addItem(
-                    "{} - Start time: {}; Duration: {}; Proportion: {}".format(
-                        section, self.config[section]["starttime"],
+                    "{} - ".format(section) +
+                    "Start time: {}; Duration: {}; No. of clips: {}".format(
+                        self.config[section]["starttime"],
                         self.config[section]["duration"],
-                        self.config[section]["proportion"]))
+                        self.config[section]["numclip"]))
 
     def load_preset(self):
         try:
@@ -208,7 +204,7 @@ class ClipsApp(QMainWindow):
                 raise AttributeError
             self.line_edit_starttime.setText(self.config[key]["starttime"])
             self.line_edit_duration.setText(self.config[key]["duration"])
-            self.line_edit_proportion.setText(self.config[key]["proportion"])
+            self.line_edit_num_clip.setText(self.config[key]["numclip"])
         except AttributeError:
             self.label_info.setText("ERROR: Invalid preset")
 
@@ -221,7 +217,7 @@ class ClipsApp(QMainWindow):
             self.config[preset_name] = {
                 "starttime": self.starttime,
                 "duration": self.duration,
-                "proportion": self.line_edit_proportion.text()
+                "numclip": self.line_edit_num_clip.text()
             }
             with open(self.config_filename, "w") as config_file:
                 self.config.write(config_file)
@@ -230,13 +226,6 @@ class ClipsApp(QMainWindow):
     @pyqtSlot(str)
     def update_status(self, status):
         self.label_info.setText(status)
-
-def try_parse_int64(string):
-    try:
-        ret = int(string)
-    except ValueError:
-        return None
-    return None if ret < -2 ** 64 or ret >= 2 ** 64 else ret
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
