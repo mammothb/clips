@@ -13,6 +13,7 @@ class ClipMaker(object):
         self.source_dir = None
         self.source_len = None
         self.is_valid_source = False
+        self.target = None
 
         self.start_time_str = None
         self.start_time = None
@@ -45,6 +46,7 @@ class ClipMaker(object):
         try:
             self.source_len = round(float(stdout.decode("utf-8")))
             self.is_valid_source = True
+            self.target = os.path.splitext(self.source)[0] + ".webm"
             info_str = "Valid source: {}; Source length: {}".format(
                 self.source, self.source_len)
             LOG.info(info_str)
@@ -114,6 +116,7 @@ class ClipMaker(object):
     def get_options(self):
         return {
             "source": self.source,
+            "target": self.target,
             "start_time": self.start_time,
             "duration": self.duration,
             "num_clip": self.num_clip,
