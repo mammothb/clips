@@ -1,5 +1,6 @@
 import logging
 import os.path
+import sys
 import time
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject
@@ -28,7 +29,7 @@ class GfycatUploader(QObject):
 
     def __init__(self):
         super().__init__()
-        cwd = os.path.realpath(os.path.dirname(__file__))
+        cwd = os.path.realpath(os.path.dirname(sys.argv[0]))
         with open(os.path.join(cwd, "apikey.txt"), "r") as api_file:
             self.client_id, self.client_secret = [
                 s.split("=")[-1].strip() for s in api_file.readlines()]

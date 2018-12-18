@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
 from browsewidgetgroup import BrowseWidgetGroup
 from clipmaker import ClipMaker
 from ffmpegworker import FfmpegWorker
-from gfycatuploader import GfycatUploader, GfycatUploaderError
+from gfycatuploader import GfycatUploader
 from infowidgetgroup import InfoWidgetGroup
 from optionwidgetgroup import OptionWidgetGroup
 from presetwidgetgroup import PresetWidgetGroup
