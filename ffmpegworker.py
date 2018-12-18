@@ -32,16 +32,16 @@ class FfmpegWorker(QObject):
                 file_name = os.path.normpath(os.path.join(
                     tmp_dir, "{}_{}{}".format(prefix, i, ".webm")))
                 start_time = str(int(t_start_sec + i * jump))
-                cmd = ["ffmpeg", "-fflags", "+genpts", "-loglevel", "error",
+                cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner",
                        "-ss", start_time, "-i", source_name, "-t", duration,
                        "-c:v", "libvpx", "-b:v", "3M", "-an",
                        "-avoid_negative_ts", "1", "-y", file_name]
                 subprocess.call(cmd)
                 outfile.write("file '{}'\n".format(file_name))
                 debug_file.write("{}\n".format(" ".join(cmd)))
-        cmd = ["ffmpeg", "-fflags", "+genpts", "-f", "concat", "-safe", "0",
-               "-i", clip_file, "-c:v", "libvpx", "-b:v", "3M", "-an",
-               "-threads", "2", "-y", outfilename]
+        cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner", "-f",
+               "concat", "-safe", "0", "-i", clip_file, "-c:v", "libvpx",
+               "-b:v", "3M", "-an", "-threads", "2", "-y", outfilename]
         debug_file.write("{}\n".format(" ".join(cmd)))
         debug_file.close()
         rc = subprocess.check_call(cmd)
