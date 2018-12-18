@@ -11,6 +11,7 @@ class FfmpegWorker(QObject):
     @pyqtSlot(dict)
     def start_work(self, args):
         source_name = args["source"]
+        outfilename = args["target"]
         t_start_sec = args["start_time"]
         duration = str(args["duration"])
         num_clip = args["num_clip"]
@@ -21,7 +22,6 @@ class FfmpegWorker(QObject):
         clip_file = os.path.normpath(os.path.join(tmp_dir, "cliplist.txt"))
         debug_file = os.path.normpath(os.path.join(tmp_dir, "debug.txt"))
         prefix, extension = os.path.splitext(os.path.basename(source_name))
-        outfilename = os.path.splitext(source_name)[0] + ".webm"
 
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
@@ -48,4 +48,4 @@ class FfmpegWorker(QObject):
         if not rc:
             shutil.rmtree(tmp_dir)
 
-        self.signal_status.emit('INFO: Done')
+        self.signal_status.emit("INFO: Done")
