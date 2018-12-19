@@ -31,8 +31,11 @@ class GfycatUploader(QObject):
         super().__init__()
         cwd = os.path.realpath(os.path.dirname(sys.argv[0]))
         with open(os.path.join(cwd, "apikey.txt"), "r") as api_file:
-            self.client_id, self.client_secret = [
-                s.split("=")[-1].strip() for s in api_file.readlines()]
+            lines = api_file.readlines()
+            self.client_id = lines[0].split("=")[-1].strip()
+            self.client_secret = lines[1].split("=")[-1].strip()
+            self.username = lines[2].split("=")[-1].strip()
+            self.password = lines[3].split("=")[-1].strip()
 
     def emit_error(self, error_message, status_code=None):
         error = GfycatUploaderError(error_message, status_code)
@@ -41,9 +44,11 @@ class GfycatUploader(QObject):
 
     def get_auth_headers(self):
         body = {
-            "grant_type": "client_credentials",
+            "grant_type": "password",
             "client_id": self.client_id,
-            "client_secret": self.client_secret
+            "client_secret": self.client_secret,
+            "username": self.username,
+            "password": self.password
         }
 
         r = requests.post(self.token_endpoint, json=body, timeout=3)

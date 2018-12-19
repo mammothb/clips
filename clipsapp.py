@@ -86,6 +86,10 @@ class ClipsApp(QMainWindow):
             self._info_group.set_info(info)
 
     def set_options(self, start_time, duration, num_clip):
+        if (start_time is None or duration is None or num_clip is None or
+                not start_time or not duration or not num_clip):
+            self._info_group.set_info("ERROR: Missing options")
+            return
         success, info = self._clip_maker.set_options(start_time, duration,
                                                      num_clip)
         if success:
