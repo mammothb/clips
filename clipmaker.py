@@ -2,6 +2,7 @@ from configparser import ConfigParser, DuplicateSectionError
 import logging
 import os.path
 import subprocess
+import sys
 
 from utils import try_parse_int64, try_parse_time
 
@@ -21,14 +22,11 @@ class ClipMaker(object):
         self.num_clip = None
         self.jump = None
 
-        cwd = os.path.realpath(os.path.dirname(__file__))
+        cwd = os.path.realpath(os.path.dirname(sys.argv[0]))
         self.config_filename = os.path.join(cwd, "presets.ini")
         open(self.config_filename, "a").close()
         self.config = ConfigParser()
         self.config.read(self.config_filename)
-
-        self._cwd = None
-        self._tmp_dir = None
 
     def check_source(self):
         if self.source is None:
