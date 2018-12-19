@@ -40,8 +40,8 @@ class FfmpegWorker(QObject):
                 outfile.write("file '{}'\n".format(file_name))
                 debug_file.write("{}\n".format(" ".join(cmd)))
         cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner", "-f",
-               "concat", "-safe", "0", "-i", clip_file, "-c:v", "libvpx",
-               "-b:v", "3M", "-an", "-threads", "2", "-y", outfilename]
+               "concat", "-safe", "0", "-i", clip_file, "-c:v", "copy",
+               "-an", "-threads", "2", "-y", outfilename]
         debug_file.write("{}\n".format(" ".join(cmd)))
         debug_file.close()
         rc = subprocess.check_call(cmd)
