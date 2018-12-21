@@ -1,5 +1,7 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QLabel, QPushButton
+from datetime import datetime
+
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import QPushButton, QTextEdit, QVBoxLayout
 
 class InfoWidgetGroup(object):
     def __init__(self, parent, layout):
@@ -8,20 +10,23 @@ class InfoWidgetGroup(object):
 
         self._label_info = None
         self.init_ui()
+        self.set_info("Program started")
 
     def init_ui(self):
-        self._label_info = QLabel("Preview clip information")
-        self._label_info.setFrameShape(QFrame.Panel)
-        self._label_info.setLineWidth(1)
-        self._label_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self._text_edit = QTextEdit()
+        self._text_edit.setFixedHeight(80)
+        self._text_edit.setReadOnly(True)
         button_create = QPushButton("Create")
         button_create.clicked.connect(self.create)
         button_upload = QPushButton("Upload")
         button_upload.clicked.connect(self.upload)
 
-        self._layout.addWidget(self._label_info)
-        self._layout.addWidget(button_create)
-        self._layout.addWidget(button_upload)
+        self._layout.addWidget(self._text_edit)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(button_create)
+        vbox.addWidget(button_upload)
+        self._layout.addLayout(vbox)
 
     def create(self):
         self._parent.create()
@@ -30,4 +35,8 @@ class InfoWidgetGroup(object):
         self._parent.upload()
 
     def set_info(self, text):
-        self._label_info.setText(text)
+        self._text_edit.append("{:02d}:{:02d}:{:02d} - {}".format(
+            datetime.now().hour, datetime.now().minute,
+            datetime.now().second, text))
+        self._text_edit.ensureCursorVisible()
+        self._text_edit.moveCursor(QTextCursor.End)

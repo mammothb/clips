@@ -17,5 +17,5 @@ def try_parse_time(string):
             return None
         else:
             return int(round(t_vec_sec))
-    except IndexError:
+    except (IndexError, TypeError):
         return None

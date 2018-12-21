@@ -60,45 +60,52 @@ class GfycatUploader(QObject):
         }
         return auth_headers
 
-    @pyqtSlot(str)
-    def upload_from_file(self, file_name):
+    @pyqtSlot(list)
+    def upload_from_file(self, file_names):
         """Upload a local file to Gfycat. Taken from:
         https://gist.github.com/hellopatrick/ab6a9dfbbc7c1db7e6b817d06399fffd
         """
-        gif_info = {
-            "title": os.path.splitext(os.path.basename(file_name))[0],
-            "noMd5": "true",
-            "nsfw": 1
-        }
         headers = self.get_auth_headers()
         if headers is None:
             return
-        r = requests.post(self.api_endpoint, json=gif_info, headers=headers)
-        if r.status_code != 200:
-            self.emit_error("Error requesting ID", r.status_code)
-            return
-        gfyname = r.json()["gfyname"]
-        LOG.info("Requested ID: %s", gfyname)
-        with open(file_name, "rb") as source:
-            r = requests.put("{}/{}".format(self.filedrop_endpoint, gfyname),
-                             source)
+        for file_name in file_names:
+            base_name = os.path.basename(file_name)
+            gif_info = {
+                "title": os.path.splitext(base_name)[0],
+                "noMd5": "true",
+                "nsfw": 1
+            }
+            r = requests.post(self.api_endpoint, json=gif_info,
+                              headers=headers)
             if r.status_code != 200:
-                self.emit_error("Error uploading file", r.status_code)
+                self.emit_error("{} - Error requesting ID".format(base_name),
+                                r.status_code)
                 return
-        LOG.info("Encoding")
-        status = "encoding"
-        wait_count = 0
-        while status == "encoding":
-            status = self.get_upload_status(gfyname)
-            time.sleep(3)
-            wait_count += 1
-            if wait_count > 300:
-                break
-        if status != "complete":
-            self.emit_error("Gfycat could not be created")
-        else:
-            self.signal_status.emit(
-                "INFO: Uploaded to https://gfycat.com/{}".format(gfyname))
+            gfyname = r.json()["gfyname"]
+            LOG.info("Requested ID: %s", gfyname)
+            with open(file_name, "rb") as source:
+                r = requests.put("{}/{}".format(self.filedrop_endpoint,
+                                                gfyname), source)
+                if r.status_code != 200:
+                    self.emit_error("{} - Error uploading file".format(
+                        base_name), r.status_code)
+                    return
+            LOG.info("Encoding %s", base_name)
+            status = "encoding"
+            wait_count = 0
+            while status == "encoding":
+                status = self.get_upload_status(gfyname)
+                time.sleep(3)
+                wait_count += 1
+                if wait_count > 300:
+                    break
+            if status != "complete":
+                self.emit_error("{} - Gfycat could not be created".format(
+                    base_name))
+            else:
+                self.signal_status.emit(
+                    "INFO: Uploaded to https://gfycat.com/{}".format(
+                        gfyname))
 
     def get_upload_status(self, gfyname):
         """Get information about an uploaded GIF. Taken from:
