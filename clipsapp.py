@@ -94,6 +94,9 @@ class ClipsApp(QMainWindow):
                     "INFO: Removed invalid source file '{}'".format(
                         source_path))
 
+    def update_info(self, text):
+        self._info_group.set_info(text)
+
     def get_presets(self):
         return self._clip_maker.get_presets()
 
