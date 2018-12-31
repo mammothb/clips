@@ -37,14 +37,15 @@ class FfmpegWorker(QObject):
                     start_time = str(int(t_start_sec + j * jump))
                     cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner",
                            "-ss", start_time, "-i", source_name, "-t",
-                           duration, "-c:v", "libvpx", "-b:v", "3M", "-an",
-                           "-avoid_negative_ts", "1", "-y", file_name]
+                           duration, "-c:v", "libvpx", "-b:v", "3M", "-c:a",
+                           "libvorbis", "-b:a", "128k", "-avoid_negative_ts",
+                           "1", "-y", file_name]
                     subprocess.call(cmd)
                     outfile.write("file '{}'\n".format(file_name))
                     debug_file.write("{}\n".format(" ".join(cmd)))
             cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner", "-f",
                    "concat", "-safe", "0", "-i", clip_file, "-c:v", "copy",
-                   "-an", "-threads", "2", "-y", outfile_name]
+                   "-c:a", "copy", "-threads", "2", "-y", outfile_name]
             debug_file.write("{}\n".format(" ".join(cmd)))
             debug_file.close()
             rc = subprocess.check_call(cmd)
