@@ -6,18 +6,9 @@ import time
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject
 import requests
 
+from message import GfycatUploaderError, InfoMessage, Message
+
 LOG = logging.getLogger("GfycatUploader")
-
-class GfycatUploaderError(object):
-    def __init__(self, error_message, status_code=None):
-        self.status_code = status_code
-        self.error_message = error_message
-
-    def __str__(self):
-        if self.status_code:
-            return "({}) {}".format(self.status_code, self.error_message)
-        else:
-            return self.error_message
 
 class GfycatUploader(QObject):
     api_endpoint = "https://api.gfycat.com/v1/gfycats"
@@ -25,7 +16,7 @@ class GfycatUploader(QObject):
     status_endpoint = "https://api.gfycat.com/v1/gfycats/fetch/status"
     token_endpoint = "https://api.gfycat.com/v1/oauth/token"
 
-    signal_status = pyqtSignal(str)
+    status_sig = pyqtSignal(Message)
 
     def __init__(self):
         super().__init__()
@@ -40,7 +31,7 @@ class GfycatUploader(QObject):
     def emit_error(self, error_message, status_code=None):
         error = GfycatUploaderError(error_message, status_code)
         LOG.warning(error)
-        self.signal_status.emit("ERROR: {}".format(error))
+        self.status_sig.emit(error)
 
     def get_auth_headers(self):
         body = {
@@ -103,9 +94,8 @@ class GfycatUploader(QObject):
                 self.emit_error("{} - Gfycat could not be created".format(
                     base_name))
             else:
-                self.signal_status.emit(
-                    "INFO: Uploaded to https://gfycat.com/{}".format(
-                        gfyname))
+                self.status_sig.emit(InfoMessage(
+                    "Uploaded to https://gfycat.com/{}".format(gfyname)))
 
     def get_upload_status(self, gfyname):
         """Get information about an uploaded GIF. Taken from:

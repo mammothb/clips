@@ -5,8 +5,10 @@ import subprocess
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject
 
+from message import InfoMessage, Message
+
 class FfmpegWorker(QObject):
-    signal_status = pyqtSignal(str)
+    status_sig = pyqtSignal(Message)
 
     @pyqtSlot(dict)
     def start_work(self, args):
@@ -14,8 +16,8 @@ class FfmpegWorker(QObject):
         duration = str(args["duration"])
         num_clip = args["num_clip"]
         for i, source_name in enumerate(args["source"]):
-            self.signal_status.emit("INFO: Converting {}".format(
-                source_name))
+            self.status_sig.emit(
+                InfoMessage("Converting {}".format(source_name)))
             outfile_name = args["target"][i]
             jump = args["jump"][i]
 
@@ -37,18 +39,19 @@ class FfmpegWorker(QObject):
                     start_time = str(int(t_start_sec + j * jump))
                     cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner",
                            "-ss", start_time, "-i", source_name, "-t",
-                           duration, "-c:v", "libvpx", "-b:v", "3M", "-an",
-                           "-avoid_negative_ts", "1", "-y", file_name]
+                           duration, "-c:v", "libvpx", "-b:v", "3M", "-c:a",
+                           "libvorbis", "-b:a", "128k", "-avoid_negative_ts",
+                           "1", "-y", file_name]
                     subprocess.call(cmd)
                     outfile.write("file '{}'\n".format(file_name))
                     debug_file.write("{}\n".format(" ".join(cmd)))
             cmd = ["ffmpeg", "-fflags", "+genpts", "-hide_banner", "-f",
                    "concat", "-safe", "0", "-i", clip_file, "-c:v", "copy",
-                   "-an", "-threads", "2", "-y", outfile_name]
+                   "-c:a", "copy", "-threads", "2", "-y", outfile_name]
             debug_file.write("{}\n".format(" ".join(cmd)))
             debug_file.close()
             rc = subprocess.check_call(cmd)
             if not rc:
                 shutil.rmtree(tmp_dir)
 
-        self.signal_status.emit("INFO: Done")
+        self.status_sig.emit(InfoMessage("Done"))
