@@ -60,6 +60,7 @@ class ClipsPresenter(QObject):
 
     def preview_clip_info(self):
         self.set_options(self.clips_view.get_start_time(),
+                         self.clips_view.get_end_time(),
                          self.clips_view.get_duration(),
                          self.clips_view.get_num_clip())
 
@@ -86,11 +87,12 @@ class ClipsPresenter(QObject):
             else:
                 self.clips_view.set_info(ErrorMessage(info))
 
-    def set_options(self, start_time, duration, num_clip):
+    def set_options(self, start_time, end_time, duration, num_clip):
         if any(not option for option in [start_time, duration, num_clip]):
             self.clips_view.set_info(ErrorMessage("Missing options"))
             return
-        results = self.model.set_options(start_time, duration, num_clip)
+        results = self.model.set_options(start_time, end_time, duration,
+                                         num_clip)
         for result in results:
             if result.index == -1:
                 self.clips_view.set_info(ErrorMessage(result.info_str))
@@ -109,8 +111,9 @@ class ClipsPresenter(QObject):
         success, info = self.model.get_preset_options(preset_name)
         if success:
             self.clips_view.set_start_time(info[0])
-            self.clips_view.set_duration(info[1])
-            self.clips_view.set_num_clip(info[2])
+            self.clips_view.set_end_time(info[1])
+            self.clips_view.set_duration(info[2])
+            self.clips_view.set_num_clip(info[3])
             self.set_options(*info)
         else:
             self.clips_view.set_info(ErrorMessage(info))

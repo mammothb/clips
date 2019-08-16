@@ -10,7 +10,7 @@ class ClipsModel(object):
         valid_file_names = []
         self.maker.clear_jobs()
         for file_name in self.file_names:
-            (is_valid, target, length) = check_source(file_name)
+            is_valid, target, length = check_source(file_name)
             if is_valid and file_name not in valid_file_names:
                 valid_file_names.append(file_name)
                 self.maker.add_job(file_name, target, length)
@@ -39,6 +39,9 @@ class ClipsModel(object):
     def save_preset(self, preset_name):
         return self.maker.save_options_as_preset(preset_name)
 
+    # =================================================================
+    # Getters
+    # =================================================================
     def get_is_created(self):
         return self._is_created
 
@@ -54,11 +57,15 @@ class ClipsModel(object):
     def get_preset_options(self, preset_name):
         return self.maker.get_preset_options(preset_name)
 
+    # =================================================================
+    # Setters
+    # =================================================================
     def set_file_names(self, file_names):
         self.file_names = file_names
 
     def set_is_created(self, is_created):
         self._is_created = is_created
 
-    def set_options(self, start_time, duration, num_clip):
-        return self.maker.set_options(start_time, duration, num_clip)
+    def set_options(self, start_time, end_time, duration, num_clip):
+        return self.maker.set_options(start_time, end_time, duration,
+                                      num_clip)

@@ -47,6 +47,8 @@ class ClipsMaker(object):
 
         self.start_time_str = None
         self.start_time = None
+        self.end_time_str = None
+        self.end_time = None
         self.duration = None
         self.num_clip = None
         self.jump = None
@@ -80,9 +82,15 @@ class ClipsMaker(object):
         results = []
         for idx, job in enumerate(self.jobs):
             job.is_valid = False
-            working_duration = job.source_length - self.start_time
+            if self.end_time is None:
+                working_duration = job.source_length - self.start_time
+            else:
+                working_duration = self.end_time - self.start_time
             trailer_duration = self.num_clip * self.duration
-            if self.duration > working_duration:
+            if self.end_time and self.end_time > job.source_length:
+                info_str = "Invalid end time"
+                LOG.warning("%s: %s", info_str, job.source)
+            elif self.duration > working_duration:
                 info_str = "Invalid duration"
                 LOG.warning("%s: %s", info_str, job.source)
             elif trailer_duration > working_duration:
@@ -106,16 +114,19 @@ class ClipsMaker(object):
             self.config.add_section(preset_name)
             self.config[preset_name] = {
                 "start_time": self.start_time_str,
+                "end_time": self.end_time_str,
                 "duration": self.duration,
                 "num_clip": self.num_clip
             }
             with open(self.config_file_name, "w") as config_file:
                 self.config.write(config_file)
-            info_str = ("Saved preset '{}' - start_time: {}; duration: {}; "
-                        "num_clip: {}".format(preset_name,
-                                              self.start_time_str,
-                                              self.duration,
-                                              self.num_clip))
+            info_str = ("Saved preset '{}' - start_time: {}; end_time: {}; "
+                        "duration: {}; num_clip: {}".format(
+                            preset_name,
+                            self.start_time_str,
+                            self.end_time_str,
+                            self.duration,
+                            self.num_clip))
             LOG.info(info_str)
             return True, info_str
         except DuplicateSectionError:
@@ -128,6 +139,7 @@ class ClipsMaker(object):
             "source": [job.source for job in self.jobs],
             "target": [job.target for job in self.jobs],
             "start_time": self.start_time,
+            "end_time": self.end_time,
             "duration": self.duration,
             "num_clip": self.num_clip,
             "jump": [job.jump for job in self.jobs]
@@ -136,17 +148,20 @@ class ClipsMaker(object):
     def get_presets(self):
         for section in self.config:
             if section != "DEFAULT":
-                yield ("{} - Start time: {}; Duration: {}; No. of clips: "
-                       "{}".format(section,
-                                   self.config[section]["start_time"],
-                                   self.config[section]["duration"],
-                                   self.config[section]["num_clip"]))
+                yield ("{} - Start time: {}; End time: {}; Duration: {}; "
+                       "No. of clips: {}".format(
+                           section,
+                           self.config[section]["start_time"],
+                           self.config[section]["end_time"],
+                           self.config[section]["duration"],
+                           self.config[section]["num_clip"]))
 
     def get_preset_options(self, preset_name):
         try:
             if preset_name == "Select preset":
                 raise AttributeError
             return True, (self.config[preset_name]["start_time"],
+                          self.config[preset_name]["end_time"],
                           self.config[preset_name]["duration"],
                           self.config[preset_name]["num_clip"])
         except AttributeError:
@@ -154,9 +169,11 @@ class ClipsMaker(object):
             LOG.warning(info_str)
             return False, info_str
 
-    def set_options(self, start_time_str, duration, num_clip):
+    def set_options(self, start_time_str, end_time_str, duration, num_clip):
         self.start_time_str = start_time_str
         self.start_time = try_parse_time(start_time_str)
+        self.end_time_str = end_time_str
+        self.end_time = try_parse_time(end_time_str)
         self.duration = try_parse_int64(duration)
         self.num_clip = try_parse_int64(num_clip)
         return self.check_options()

@@ -47,10 +47,15 @@ class ClipsApp(QMainWindow):
 
     def _set_style_sheet(self):
         self.setStyleSheet("""
-            QLabel {
+            QLabel#option {
                 max-width: 55px;
                 min-width: 55px;
                 width: 55px;
+            }
+            QLineEdit#option {
+                max-width: 60px;
+                min-width: 60px;
+                width: 60px;
             }
             QPushButton {
                 max-width: 100px;

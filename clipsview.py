@@ -86,6 +86,9 @@ class ClipsView(QWidget):
     def get_duration(self):
         return self._line_edit_duration.text()
 
+    def get_end_time(self):
+        return self._line_edit_end_time.text()
+
     def get_num_clip(self):
         return self._line_edit_num_clip.text()
 
@@ -97,6 +100,9 @@ class ClipsView(QWidget):
     # =================================================================
     def set_duration(self, text):
         return self._line_edit_duration.setText(text)
+
+    def set_end_time(self, text):
+        return self._line_edit_end_time.setText(text)
 
     def set_info(self, text):
         self._text_edit.append("{:02d}:{:02d}:{:02d} - {}".format(
@@ -152,6 +158,9 @@ class ClipsView(QWidget):
         label_start_time = QLabel("Start time: ")
         self._line_edit_start_time = QLineEdit()
 
+        label_end_time = QLabel("End time: ")
+        self._line_edit_end_time = QLineEdit()
+
         label_duration = QLabel("Duration: ")
         self._line_edit_duration = QLineEdit()
 
@@ -164,11 +173,16 @@ class ClipsView(QWidget):
         hbox = QHBoxLayout()
         hbox.addWidget(label_start_time)
         hbox.addWidget(self._line_edit_start_time)
+        hbox.addWidget(label_end_time)
+        hbox.addWidget(self._line_edit_end_time)
         hbox.addWidget(label_duration)
         hbox.addWidget(self._line_edit_duration)
         hbox.addWidget(label_num_clip)
         hbox.addWidget(self._line_edit_num_clip)
         hbox.addWidget(button_preview)
+
+        for i in range(hbox.count() - 1):
+            hbox.itemAt(i).widget().setObjectName("option")
 
         self.vbox.addLayout(hbox)
 
