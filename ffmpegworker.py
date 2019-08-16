@@ -5,8 +5,10 @@ import subprocess
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject
 
+from message import InfoMessage, Message
+
 class FfmpegWorker(QObject):
-    signal_status = pyqtSignal(str)
+    status_sig = pyqtSignal(Message)
 
     @pyqtSlot(dict)
     def start_work(self, args):
@@ -14,8 +16,8 @@ class FfmpegWorker(QObject):
         duration = str(args["duration"])
         num_clip = args["num_clip"]
         for i, source_name in enumerate(args["source"]):
-            self.signal_status.emit("INFO: Converting {}".format(
-                source_name))
+            self.status_sig.emit(
+                InfoMessage("Converting {}".format(source_name)))
             outfile_name = args["target"][i]
             jump = args["jump"][i]
 
@@ -52,4 +54,4 @@ class FfmpegWorker(QObject):
             if not rc:
                 shutil.rmtree(tmp_dir)
 
-        self.signal_status.emit("INFO: Done")
+        self.status_sig.emit(InfoMessage("Done"))
